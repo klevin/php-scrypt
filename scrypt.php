@@ -32,7 +32,7 @@ class Password
     /**
      * @var int The key length
      */
-    private static $_keyLength = 32;
+    private static $_keyLength = 64;
 
     /**
      * Generates a random salt
@@ -41,17 +41,9 @@ class Password
      *
      * @return string The salt
      */
-    public static function generateSalt($length = 8)
+    public static function generateSalt($length = 16)
     {
-        $salt = '';
-        $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#%&*?';
-        $num = strlen($chars) - 1;
-
-        for ($i = 0; $i < $length; $i++) {
-            $salt .= $chars[mt_rand(0, $num)];
-        }
-
-        return $salt;
+        return base64_encode(mcrypt_create_iv($length, MCRYPT_DEV_URANDOM);)
     }
 
     /**
@@ -68,10 +60,10 @@ class Password
     public static function hash($password, $salt = false, $N = 16384, $r = 8, $p = 1)
     {
         if ($salt === false) {
-            $salt = self::generateSalt();
+            $salt = base64_decode(self::generateSalt());
         } else {
             //Remove dollar signs from the salt, as we use that as a separator.
-            $salt = str_replace('$', '', $salt);
+            $salt = base64_decode(str_replace('$', '', $salt));
         }
 
         $hash = scrypt($password, $salt, $N, $r, $p, self::$_keyLength);
