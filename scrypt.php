@@ -41,9 +41,15 @@ class Password
      *
      * @return string The salt
      */
-    public static function generateSalt($length = 16)
+    public static function generateSalt($length = 18)
     {
-        return mcrypt_create_iv($length, MCRYPT_DEV_URANDOM);
+        if(function_exists('openssl_random_pseudo_bytes')) {
+          return openssl_random_pseudo_bytes($length);
+        }
+        if(function_exists('mcrypt_create_iv')) {
+          return mcrypt_create_iv($length, MCRYPT_DEV_URANDOM);
+        }
+        die("No secure random number generator installed");
     }
 
     /**
@@ -60,10 +66,10 @@ class Password
     public static function hash($password, $salt = false, $N = 16384, $r = 8, $p = 1)
     {
         if ($salt === false) {
-            $salt = base64_decode(self::generateSalt());
+            $salt = self::generateSalt();
         } else {
             //Remove dollar signs from the salt, as we use that as a separator.
-            $salt = base64_decode(str_replace('$', '', $salt));
+            $salt = str_replace('$', '', $salt);
         }
 
         $hash = scrypt($password, $salt, $N, $r, $p, self::$_keyLength);
