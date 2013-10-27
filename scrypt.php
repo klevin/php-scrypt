@@ -32,7 +32,7 @@ class Password
     /**
      * @var int The key length
      */
-    private static $_keyLength = 64;
+    private static $_keyLength = 33;
 
     /**
      * Generates a random salt
@@ -72,7 +72,7 @@ class Password
             $salt = str_replace('$', '', $salt);
         }
 
-        $hash = scrypt($password, $salt, $N, $r, $p, self::$_keyLength);
+        $hash = base64_encode(hex2bin(scrypt($password, $salt, $N, $r, $p, self::$_keyLength)));
 
         return $N.'$'.$r.'$'.$p.'$'. base64_encode($salt).'$'.$hash;
     }
