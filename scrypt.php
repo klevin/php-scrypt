@@ -43,7 +43,7 @@ class Password
      */
     public static function generateSalt($length = 16)
     {
-        return base64_encode(mcrypt_create_iv($length, MCRYPT_DEV_URANDOM);)
+        return mcrypt_create_iv($length, MCRYPT_DEV_URANDOM);
     }
 
     /**
@@ -68,7 +68,7 @@ class Password
 
         $hash = scrypt($password, $salt, $N, $r, $p, self::$_keyLength);
 
-        return $N.'$'.$r.'$'.$p.'$'.$salt.'$'.$hash;
+        return $N.'$'.$r.'$'.$p.'$'. base64_encode($salt).'$'.$hash;
     }
 
     /**
@@ -98,7 +98,7 @@ class Password
             return false;
         }
 
-        $calculated = scrypt($password, $salt, $N, $r, $p, self::$_keyLength);
+        $calculated = scrypt($password, base64_decode($salt), $N, $r, $p, self::$_keyLength);
 
         // Use compareStrings to avoid timeing attacks
         return self::compareStrings($hash, $calculated);
