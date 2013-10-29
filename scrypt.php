@@ -44,12 +44,57 @@ class Password
     public static function generateSalt($length = 18)
     {
         if(function_exists('openssl_random_pseudo_bytes')) {
-          return openssl_random_pseudo_bytes($length);
+          try {
+            $rand = openssl_random_pseudo_bytes($length);
+            if(strlen($rand) == $length) {
+              return $rand; // It returned a string as long as expected
+            }
+          } catch(Exception $ex) {
+            // I'm not 100% sure what to put here, but it will just continue down the line
+            // and try mcrypt_create_iv() next anyway.
+            trigger_error("openssl_random_pseudo_bytes() triggered an exception in scrypt.php", E_USER_WARNING);
+          }
         }
         if(function_exists('mcrypt_create_iv')) {
-          return mcrypt_create_iv($length, MCRYPT_DEV_URANDOM);
+          try {
+            $rand = mcrypt_create_iv($length, MCRYPT_DEV_URANDOM);
+            if(strlen($rand) == $length) {
+              return $rand; // It returned as tring as long as expected
+            }
+          } catch(Exception $ex) {
+            trigger_error("mcrypt_create_iv() triggered an exception in scrypt.php", E_USER_WARNING);
+          }
         }
-        die("No secure random number generator installed");
+        if(is_readable('/dev/urandom')) {
+          // Read $length bytes from the non-blocking random byte device
+          try {
+            $fp = fopen('/dev/urandom', 'r');
+            $rand = fread($fp, $length);
+            fclose($fp);
+            if(strlen($rand) == $length) {
+              return $rand;
+            }
+          } catch(Exception $ex) {
+            trigger_error("Error with reading bytes from /dev/urandom in scrypt.php", E_USER_WARNING);
+          }
+        }
+        if (@class_exists('COM')) {
+          try {
+            $CAPI_Util = new COM('CAPICOM.Utilities.1');
+            $rand = $CAPI_Util->GetRandom($length,0);
+            return $rand;
+          } catch (Exception $ex) {
+            trigger_error("COM Failed. You should probably look at the code since it wasn't adequately ".
+                          "tested for Windows platforms.");
+          }
+        }
+        // If we're still here, I /guess/ we can just use mt_rand, if you insist.
+        trigger_error("No suitable random number generator found, falling back to a weak one.", E_USER_NOTICE);
+        $rand = '';
+        for($i = 0; $i < $length; ++$i) {
+          $rand .= chr(mt_rand(0,255));
+        }
+        return $rand;
     }
 
     /**
@@ -104,7 +149,7 @@ class Password
             return false;
         }
 
-        $calculated = scrypt($password, base64_decode($salt), $N, $r, $p, self::$_keyLength);
+        $calculated = base64_encode(hex2bin(scrypt($password, base64_decode($salt), $N, $r, $p, self::$_keyLength)));
 
         // Use compareStrings to avoid timeing attacks
         return self::compareStrings($hash, $calculated);
