@@ -196,3 +196,9 @@ class Password
         return ($result === 0);
     }
 }
+// Using an old version of PHP? never fear bin2hex() is here :)
+if(!function_exists('bin2hex')) {
+    function hex2bin($str) {
+        return pack('H*', $str);
+    }
+}
