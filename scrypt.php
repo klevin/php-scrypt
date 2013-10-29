@@ -43,6 +43,8 @@ class Password
      */
     public static function generateSalt($length = 18)
     {
+        // Let's generate a string of random bytes to use as a salt
+        // First, try openssl's CSPRNG
         if(function_exists('openssl_random_pseudo_bytes')) {
           try {
             $rand = openssl_random_pseudo_bytes($length);
@@ -55,6 +57,7 @@ class Password
             trigger_error("openssl_random_pseudo_bytes() triggered an exception in scrypt.php", E_USER_WARNING);
           }
         }
+        // Using PHP < 5.3.0? Okay, try using mcrypt to do the same thing
         if(function_exists('mcrypt_create_iv')) {
           try {
             $rand = mcrypt_create_iv($length, MCRYPT_DEV_URANDOM);
@@ -65,11 +68,14 @@ class Password
             trigger_error("mcrypt_create_iv() triggered an exception in scrypt.php", E_USER_WARNING);
           }
         }
+        // If we are on a Linux/BSD operating system, /dev/urandom should provide adequate entropy
         if(is_readable('/dev/urandom')) {
-          // Read $length bytes from the non-blocking random byte device
           try {
+            // Open the non-blocking random device
             $fp = fopen('/dev/urandom', 'r');
+            // Read $length bytes from the device
             $rand = fread($fp, $length);
+            // Close the file handler for the device
             fclose($fp);
             if(strlen($rand) == $length) {
               return $rand;
@@ -78,6 +84,7 @@ class Password
             trigger_error("Error with reading bytes from /dev/urandom in scrypt.php", E_USER_WARNING);
           }
         }
+        // WINDOWS ONLY: Access Microsoft's Crypto API for random bytes
         if (@class_exists('COM')) {
           try {
             $CAPI_Util = new COM('CAPICOM.Utilities.1');
@@ -85,7 +92,7 @@ class Password
             return $rand;
           } catch (Exception $ex) {
             trigger_error("COM Failed. You should probably look at the code since it wasn't adequately ".
-                          "tested for Windows platforms.");
+                          "tested for Windows platforms.", E_USER_WARNING);
           }
         }
         // If we're still here, I /guess/ we can just use mt_rand, if you insist.
@@ -112,9 +119,6 @@ class Password
     {
         if ($salt === false) {
             $salt = self::generateSalt();
-        } else {
-            //Remove dollar signs from the salt, as we use that as a separator.
-            $salt = str_replace('$', '', $salt);
         }
 
         $hash = base64_encode(hex2bin(scrypt($password, $salt, $N, $r, $p, self::$_keyLength)));
