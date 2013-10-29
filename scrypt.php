@@ -199,6 +199,9 @@ class Password
 // Using an old version of PHP? never fear bin2hex() is here :)
 if(!function_exists('bin2hex')) {
     function hex2bin($str) {
-        return pack('H*', $str);
+        if(strlen($str) % 2 === 0) {
+          return pack('H*', $str);
+        }
+        return pack('H*', '0'.$str);
     }
 }
