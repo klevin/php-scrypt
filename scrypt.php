@@ -202,6 +202,7 @@ if(!function_exists('bin2hex')) {
         if(strlen($str) % 2 === 0) {
           return pack('H*', $str);
         }
-        return pack('H*', '0'.$str);
+        trigger_error("The length of the input string for bin2hex() must be an even number.");
+        return false;
     }
 }
