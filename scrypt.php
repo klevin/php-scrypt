@@ -84,6 +84,7 @@ class Password
             trigger_error("Error with reading bytes from /dev/urandom in scrypt.php", E_USER_WARNING);
           }
         }
+        /*
         // WINDOWS ONLY: Access Microsoft's Crypto API for random bytes
         if (@class_exists('COM')) {
           try {
@@ -94,7 +95,7 @@ class Password
             trigger_error("COM Failed. You should probably look at the code since it wasn't adequately ".
                           "tested for Windows platforms.", E_USER_WARNING);
           }
-        }
+        }*/
         // If we're still here, I /guess/ we can just use mt_rand, if you insist.
         trigger_error("No suitable random number generator found, falling back to a weak one.", E_USER_NOTICE);
         $rand = '';
