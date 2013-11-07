@@ -46,42 +46,29 @@ class Password
         // Let's generate a string of random bytes to use as a salt
         // First, try openssl's CSPRNG
         if(function_exists('openssl_random_pseudo_bytes')) {
-          try {
-            $rand = openssl_random_pseudo_bytes($length);
-            if(strlen($rand) == $length) {
-              return $rand; // It returned a string as long as expected
-            }
-          } catch(Exception $ex) {
-            // I'm not 100% sure what to put here, but it will just continue down the line
-            // and try mcrypt_create_iv() next anyway.
-            trigger_error("openssl_random_pseudo_bytes() triggered an exception in scrypt.php", E_USER_WARNING);
+          $secure = false;
+          $rand = openssl_random_pseudo_bytes($length, $secure);
+          if($secure && strlen($rand) == $length) {
+            return $rand; // It returned a string as long as expected
           }
         }
         // Using PHP < 5.3.0? Okay, try using mcrypt to do the same thing
         if(function_exists('mcrypt_create_iv')) {
-          try {
-            $rand = mcrypt_create_iv($length, MCRYPT_DEV_URANDOM);
-            if(strlen($rand) == $length) {
-              return $rand; // It returned as tring as long as expected
-            }
-          } catch(Exception $ex) {
-            trigger_error("mcrypt_create_iv() triggered an exception in scrypt.php", E_USER_WARNING);
+          $rand = mcrypt_create_iv($length, MCRYPT_DEV_URANDOM);
+          if(strlen($rand) == $length) {
+            return $rand; // It returned as tring as long as expected
           }
         }
         // If we are on a Linux/BSD operating system, /dev/urandom should provide adequate entropy
         if(is_readable('/dev/urandom')) {
-          try {
-            // Open the non-blocking random device
-            $fp = fopen('/dev/urandom', 'r');
-            // Read $length bytes from the device
-            $rand = fread($fp, $length);
-            // Close the file handler for the device
-            fclose($fp);
-            if(strlen($rand) == $length) {
-              return $rand;
-            }
-          } catch(Exception $ex) {
-            trigger_error("Error with reading bytes from /dev/urandom in scrypt.php", E_USER_WARNING);
+          // Open the non-blocking random device
+          $fp = fopen('/dev/urandom', 'r');
+          // Read $length bytes from the device
+          $rand = fread($fp, $length);
+          // Close the file handler for the device
+          fclose($fp);
+          if(strlen($rand) == $length) {
+            return $rand;
           }
         }
         /*
